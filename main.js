@@ -9,9 +9,9 @@ initCarousel();
 // Init scene
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0.66, 1.35, -0.62);
+camera.position.set(0.43, 1.23, -0.67);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -70,8 +70,8 @@ const areaButtons = [
   },
   {
     button: document.querySelector('button:nth-child(4)'),
-    cameraPosition: [-0.45, 0.68, -0.70],
-    cameraTarget: [-0.3, 0, 0],
+    cameraPosition: [-0.93, 0.78, 0.73],
+    cameraTarget: [-0.4, 0.2, 0.6],
     descriptionId: 'arrivaldescription',
   },
   // {
