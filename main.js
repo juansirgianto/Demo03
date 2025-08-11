@@ -241,7 +241,7 @@ function animate() {
     controls.update();
     renderer.render(scene, camera);
     if (isZooming || isOrbiting) return; // Skip update scene jika sedang animasi khusus
-    camInfo.textContent = `Camera: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`;
+    // camInfo.textContent = `Camera: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`;
 
     // const maxY = 2.0;
     // const minY = 0.3;
