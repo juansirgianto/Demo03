@@ -48,7 +48,7 @@ scene.add(splats);
 // scene.add( axesHelper );
 
 // caminfo
-const camInfo = document.getElementById('cam-info');
+// const camInfo = document.getElementById('cam-info');
 
 const areaButtons = [
   {
