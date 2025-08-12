@@ -90,11 +90,18 @@ const areaButtons = [
 ];
 
 const buttons = document.querySelectorAll('.area-button');
+const closeButtons = document.querySelectorAll('.close-description');
 
 buttons.forEach(btn => {
   btn.addEventListener('click', () => {
     buttons.forEach(b => b.dataset.active = "false");
     btn.dataset.active = "true";
+  });
+});
+
+closeButtons.forEach(closeBtn => {
+  closeBtn.addEventListener('click', () => {
+    buttons.forEach(b => b.dataset.active = "false");
   });
 });
 
