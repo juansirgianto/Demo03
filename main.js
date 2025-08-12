@@ -89,6 +89,15 @@ const areaButtons = [
   // },
 ];
 
+const buttons = document.querySelectorAll('.area-button');
+
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    buttons.forEach(b => b.dataset.active = "false");
+    btn.dataset.active = "true";
+  });
+});
+
 areaButtons.forEach(({ button, cameraPosition, cameraTarget, descriptionId }) => {
   button.addEventListener('click', () => {
     moveCameraTo(cameraPosition, cameraTarget);
