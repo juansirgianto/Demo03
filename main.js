@@ -8,7 +8,7 @@ initCarousel();
 
 // Init scene
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0.43, 1.23, -0.67);
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
