@@ -8,12 +8,13 @@ initCarousel();
 
 // Init scene
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5);
 camera.position.set(0.43, 1.23, -0.67);
 
-const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
+const DPR = Math.min(window.devicePixelRatio, 1.25)
+renderer.setPixelRatio(DPR)
 document.body.appendChild(renderer.domElement);
 
 const canvas = renderer.domElement;
@@ -127,7 +128,27 @@ document.querySelectorAll('.close-description').forEach(btn => {
 
 let isCameraAnimating = false;
 
+let needsRender = true
+let warmingUp = true
+const WARMUP_MS = 3000
+const warmUpEndAt = performance.now() + WARMUP_MS
+
+function renderLoop() {
+  requestAnimationFrame(renderLoop)
+
+  if (controls.update()) needsRender = true
+  if (warmingUp) {
+    needsRender = true
+    if (performance.now() >= warmUpEndAt) warmingUp = false
+  }
+  if (!needsRender) return
+  renderer.render(scene, camera)
+  needsRender = false
+}
+renderLoop()
+
 function moveCameraTo(position, lookAt = null, duration = 1000) {
+  needsRender = true
   if (isCameraAnimating) return; // hindari tumpukan animasi
   isCameraAnimating = true;
   const start = camera.position.clone();
@@ -172,11 +193,17 @@ canvas.addEventListener('click', (event) => {
     if (pinPOI) {
       // Pindahkan kamera
       moveCameraTo(pinPOI.camera_position.toArray(), pinPOI.camera_target.toArray());
+      needsRender = true
 
       // Tampilkan deskripsi
       document.querySelectorAll('.description-box').forEach(d => d.style.display = 'none');
       const desc = document.getElementById(pinPOI.descriptionId);
       if (desc) desc.style.display = 'block';
+
+      document.querySelectorAll('.area-button').forEach(b => b.dataset.active = "false")
+      const index = pinPOIs.indexOf(pinPOI)
+      const targetBtn = document.querySelectorAll('.area-button')[index]
+      if (targetBtn) targetBtn.dataset.active = "true"
 
       // Highlight sementara
       clickedSprite.material.color.set(0xffff00);
@@ -185,86 +212,61 @@ canvas.addEventListener('click', (event) => {
   }
 });
 
-let hoveredSprite = null;
+const pickables = pins
+.map(p => p.children[0])
+.filter(c => c instanceof THREE.Sprite)
 
-let lastMove = 0;
-canvas.addEventListener('mousemove', (event) => {
-  const now = performance.now()
-  if (now - lastMove < 50) return
-  lastMove = now
-  
-  const rect = canvas.getBoundingClientRect();
-  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+const pointer = new THREE.Vector2()
+let hoveredSprite = null
+let rafId = null
+let pendingPick = false
+let lastX = 0, lastY = 0
 
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(
-    pins.map(p => p.children[0]).filter(c => c instanceof THREE.Sprite)
-  );
+raycaster.near = 0.1
+raycaster.far = 5.0
 
-  if (intersects.length > 0) {
-    const sprite = intersects[0].object;
+const PIN_LAYER = 2
+pickables.forEach(o => o.layers.set(PIN_LAYER))
+camera.layers.enable(PIN_LAYER)
 
-    // Jika sprite yang dihover sekarang berbeda dari sebelumnya
-    if (hoveredSprite !== sprite) {
-      // Reset warna sprite sebelumnya
-      if (hoveredSprite) hoveredSprite.material.color.set(0xffffff);
+canvas.addEventListener('pointermove', (event) => {
+  if (controls.dragging || isCameraAnimating) return
+  if (Math.abs(event.clientX - lastX) < 2 && Math.abs(event.clientY - lastY) < 2) return
+  lastX = event.clientX; lastY = event.clientY
 
-      // Set warna hover (misalnya kuning)
-      sprite.material.color.set(0xffff00);
-      hoveredSprite = sprite;
+  const rect = canvas.getBoundingClientRect()
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+  if (pendingPick) return
+  pendingPick = true
+
+  rafId = requestAnimationFrame(() => {
+    pendingPick = false
+    raycaster.setFromCamera(pointer, camera)
+    const intersects = raycaster.intersectObjects(pickables, false)
+
+    if (intersects.length > 0) {
+      const sprite = intersects[0].object
+      if (hoveredSprite !== sprite) {
+        if (hoveredSprite) hoveredSprite.material.color.setHex(0xffffff)
+        sprite.material.color.setHex(0x757641)
+        needsRender = true
+        hoveredSprite = sprite
+      }
+      canvas.style.cursor = 'pointer'
+    } else {
+      if (hoveredSprite) hoveredSprite.material.color.setHex(0xffffff)
+      hoveredSprite = null
+      canvas.style.cursor = 'default'
     }
-    canvas.style.cursor = 'pointer';
-  } else {
-    // Tidak ada yang dihover
-    if (hoveredSprite) hoveredSprite.material.color.set(0xffffff);
-    hoveredSprite = null;
-  }
-});
+  })
+}, { passive: true})
 
-// const videoBtn = document.getElementById('openVideo');
-//   const videoModal = document.getElementById('videoModal');
-//   const closeVideo = document.getElementById('closeVideo');
-//   const videoPlayer = document.getElementById('videoPlayer');
-
-//   videoBtn.addEventListener('click', () => {
-//     videoModal.classList.remove('hidden');
-//     videoPlayer.currentTime = 0;
-//     videoPlayer.play();
-//   });
-
-//   closeVideo.addEventListener('click', () => {
-//     videoModal.classList.add('hidden');
-//     videoPlayer.pause();
-//     videoPlayer.currentTime = 0;
-//   });
-
-//   // Tutup modal jika klik di luar video
-//   videoModal.addEventListener('click', (e) => {
-//     if (e.target === videoModal) {
-//       videoModal.classList.add('hidden');
-//       videoPlayer.pause();
-//       videoPlayer.currentTime = 0;
-//     }
-//   });
+window.addEventListener('blur', () => { if (rafId) cancelAnimationFrame(rafId); });
 
   let isZooming = false;
 let isOrbiting = false;
-
-// Animate
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-    if (isZooming || isOrbiting) return; // Skip update scene jika sedang animasi khusus
-    // camInfo.textContent = `Camera: x=${camera.position.x.toFixed(2)}, y=${camera.position.y.toFixed(2)}, z=${camera.position.z.toFixed(2)}`;
-
-    // const maxY = 2.0;
-    // const minY = 0.3;
-    // camera.position.y = Math.min(maxY, Math.max(minY, camera.position.y));
-}
-
-animate();
 
 // Resize handler
 window.addEventListener('resize', () => {
